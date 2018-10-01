@@ -10,7 +10,7 @@
       <h2>Machine N°{{ID}}</h2>
     </v-card-title>
     <v-card-actions>
-      <v-btn flat color="orange" @click="control">Controller</v-btn>
+      <v-btn flat color="orange" :disabled='!isConnected' @click="control">Controller</v-btn>
       <v-btn flat color="orange">Renommer</v-btn>
     </v-card-actions>
   </v-card>
@@ -20,6 +20,7 @@
 export default {
   props: {
     ID: { type: Number, default: 0 },
+    isConnected: { type: Boolean, default: false },
     imgSrc: { type: String, default: "" }
   },
   methods: {

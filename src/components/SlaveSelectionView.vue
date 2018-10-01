@@ -8,6 +8,7 @@
         >
           <card-slave 
             :ID='slave.ID'
+            :isConnected='slave.isConnected'
             :imgSrc='"https://cdn.vuetifyjs.com/images/cards/docks.jpg"'
             @control='initControlConnection({slave_id: slave.ID})'
           />

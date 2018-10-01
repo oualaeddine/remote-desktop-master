@@ -1,6 +1,7 @@
 class Slave {
-  constructor({ ID }) {
+  constructor({ ID, isConnected }) {
     this.ID = ID;
+    this.isConnected = isConnected;
     this.slave_state = null;
     this._resolution = null;
   }

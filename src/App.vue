@@ -22,6 +22,7 @@ import LoginForm from "@/components/LoginForm";
 import SideBar from "@/components/SideBar";
 import SlaveSelectionView from "@/components/SlaveSelectionView";
 
+import { URL, PORT } from "@/config.js";
 import Vuex from "vuex";
 
 export default {
@@ -58,7 +59,7 @@ export default {
   },
   mounted() {
     this.connect({
-      host: process.env.HOST || "http://rdesktop.daddou.me"
+      host: process.env.HOST || `${URL}`
     });
   }
 };

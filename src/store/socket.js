@@ -39,7 +39,8 @@ const mutations = {
         state.slaves.push(
           new Slave({
             ID: Number(slave.id),
-            name: `Machine N°${slave.id}`
+            name: `Machine N°${slave.id}`,
+            isConnected: slave.connected
           })
         );
       }
@@ -69,29 +70,19 @@ const actions = {
       }
     });
   },
-  setOnStream({ state }, { video }) {
-    state.socketConnection.onStream(stream => {
-      console.log(stream);
-      console.log(video);
-      video.srcObject = stream;
-      video.play();
-    });
-  },
   initControlConnection(
     { state, commit, getters },
     { slave_id, video, overlay }
   ) {
     state.socketConnection.sendControlRequest(slave_id, controlResponse => {
-      // save slave state
       console.log("controlResponse", controlResponse);
       commit("SAVE_SLAVE_SPECS", {
         slave_id: slave_id,
         resolution: controlResponse.resolution
       });
 
-      // dispatch("setOnStream", { slave_id, video });
-      // Set OnStream
       state.socketConnection.onStream(stream => {
+        console.log("called on stream listener");
         if (!state.desktopController) {
           state.desktopController = new DesktopController(
             stream,
@@ -104,6 +95,7 @@ const actions = {
             state.socketConnection.sendIOEvent(event);
           });
         } else {
+          console.log("updating stream");
           state.desktopController.stream = stream;
         }
       });

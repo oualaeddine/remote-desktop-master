@@ -1,19 +1,10 @@
 import SimplePeer from "simple-peer";
 
-const _DEFAULT_ICE_SERVERS = [
-  {
-    urls: "stun:http://rdesktop.daddou.me"
-  },
-  {
-    urls: "turn:http://rdesktop.daddou.me",
-    credential: "root",
-    username: "root"
-  }
-];
+import { DEFAULT_ICE_SERVERS } from "@/config.js";
 
 class PeerConnection {
   static get DEFAULT_ICE_SERVERS() {
-    return _DEFAULT_ICE_SERVERS;
+    return DEFAULT_ICE_SERVERS;
   }
 
   /**
@@ -26,6 +17,7 @@ class PeerConnection {
       initiator: true,
       stream: false,
       iceTransportPolicy: "relay",
+      trickle: true,
       config: {
         iceServers: iceServers
       },
@@ -37,58 +29,74 @@ class PeerConnection {
       }
     });
     this._connected = false;
-    this.onSignal(onSignal);
 
-    this.onData(() =>
-      console.warn("No Data listener registred for this peer connection")
-    );
-    this.onStream(() =>
-      console.warn("No Stream listener registred for this peer connection")
-    );
+    onSignal(onSignal);
+    this._peer.on("signal", onSignal);
 
-    this.peer.on("connect", () => {
+    this._peer.on("data", data => {
+      if (typeof this._onDataCallback === "function") {
+        this._onDataCallback(data);
+      } else {
+        console.warn("No Data listener registred for this peer connection");
+      }
+    });
+
+    this._peer.on("stream", stream => {
+      this._stream = stream;
+      if (typeof this._onStreamCallback === "function") {
+        this._onStreamCallback(stream);
+      } else {
+        console.warn("No Stream listener registred for this peer connection");
+      }
+    });
+
+    this._peer.on("connect", () => {
       console.log("PEER CONNECTION ESTABLISHED");
       this._connected = true;
     });
   }
 
-  get connected() {
-    return this.peer && this._connected;
+  get sdpOffer() {
+    return this._sdpOffer;
   }
 
-  get peer() {
-    return this._peer;
+  get connected() {
+    return this._peer && this._connected;
+  }
+
+  get stream() {
+    return this._stream;
   }
 
   signal(signal) {
-    this.peer.signal(signal);
+    this._peer.signal(signal);
   }
 
   send(data) {
     if (this.connected) {
-      this.peer.send(JSON.stringify(data));
+      this._peer.send(JSON.stringify(data));
     } else {
       console.warn("attemping to send data before connecting", data);
     }
   }
 
   onSignal(onSignal) {
-    this.peer.on("signal", onSignal);
-  }
-
-  onStream(onStream) {
-    this.peer.on("stream", stream => {
-      if (this._stream) {
-        this.peer.removeStream(this._stream);
-      }
-      this._stream = stream;
-      this.peer.addStream(this._stream);
-      onStream(this._stream);
-    });
+    this._onSignalCallback = onSignal;
   }
 
   onData(onData) {
-    this.peer.on("data", onData);
+    this._onDataCallback = onData;
+  }
+
+  onStream(onStream) {
+    this._onStreamCallback = onStream;
+  }
+
+  destroy() {
+    if (this._peer) {
+      this._peer.destroy();
+      this._peer = null;
+    }
   }
 }
 

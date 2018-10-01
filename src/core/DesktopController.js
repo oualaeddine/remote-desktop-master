@@ -20,6 +20,10 @@ class DesktopController {
 
     console.log("Initiated Desktop controller", this);
     this.stream = this._stream;
+
+    this._socketConnection.onData(data => {
+      console.log("got data", String(data));
+    });
   }
 
   get video() {
@@ -27,7 +31,7 @@ class DesktopController {
   }
 
   set stream(stream) {
-    // this._$video.pause();
+    this._$video.pause();
     this._stream = stream;
     this._$video.srcObject = this._stream;
     this._$video.play();

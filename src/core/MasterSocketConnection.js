@@ -3,22 +3,51 @@ import SocketIO from "socket.io-client";
 
 class MasterSocketConnection {
   constructor({ host }) {
-    this._socket = SocketIO(host);
-    // this.socket.on("connect", () => {});
+    this._host = host;
+    this.connect();
+    this.peerConnection = null;
+  }
 
-    this.onConnect(() => {
-      this.onStream(() =>
-        console.log("No stream listener set for this connection")
-      );
-      this.onData(() =>
-        console.log("No data listener set for this connection")
-      );
+  connect() {
+    this._socket = SocketIO(this._host);
+
+    this._socket.on("connect", () => {
+      this._socket.on("control_response", controlResponse => {
+        this.peerConnection.signal(controlResponse.sdpAnswer);
+        if (typeof this._onControlResponse === "function") {
+          this._onControlResponse(controlResponse);
+        }
+      });
+
+      this._socket.on("disconnect", () => {
+        setTimeout(() => {
+          this.reconnect();
+        }, 1000); // reconnect after 1 second
+      });
+
+      this._socket.on("error", () => {
+        setTimeout(() => {
+          this.reconnect();
+        }, 1000); // reconnect after 1 second
+      });
     });
-    // this.onControlResponse();
+  }
+
+  reconnect() {
+    if (this._socket) {
+      this._socket.destroy();
+      delete this._socket;
+      this._socket = null;
+    }
+    console.log("reconnecting");
+    this.connect();
   }
 
   get connected() {
     return this.peerConnection && this.peerConnection.connected;
+  }
+  get stream() {
+    return this.peerConnection.stream;
   }
 
   get socket() {
@@ -35,37 +64,33 @@ class MasterSocketConnection {
     });
     this.socket.on("authentication_done", onAuthDone);
   }
-
   sendData(data) {
     this.peerConnection.send(data);
   }
-
   sendIOEvent(event) {
     this.peerConnection.send({
       type: "IO_EVENT",
       payload: event
     });
   }
-
   sendControlRequest(slave_id, onControlResponse) {
-    console.log("sending control request", slave_id);
-    // init peer
+    console.log("sending control_request", slave_id);
+
+    if (this.peerConnection) this.peerConnection.destroy();
     this.peerConnection = new PeerConnection(
-      PeerConnection.DEFAULT_ICE_SERVERS,
+      { iceServers: PeerConnection.DEFAULT_ICE_SERVERS },
       signal => {
-        if (!this.connected) {
-          this.socket.emit("control_request", {
-            slave_id: slave_id,
-            sdpOffer: signal
-          });
-        }
+        this.socket.emit("control_request", {
+          slave_id: slave_id,
+          sdpOffer: signal
+        });
       }
     );
+
     // catch control response and signal back
     this.onControlResponse(controlResponse => {
+      console.log("got control response", controlResponse);
       if (!this.connected) {
-        console.log("signal back", controlResponse);
-        this.peerConnection.signal(controlResponse.sdpAnswer);
         onControlResponse(controlResponse);
       }
     });
@@ -74,7 +99,7 @@ class MasterSocketConnection {
     this.socket.on("connect", callback);
   }
   onControlResponse(callback) {
-    this.socket.on("control_response", callback);
+    this._onControlResponse = callback;
   }
   onData(callback) {
     if (this.peerConnection) this.peerConnection.onData(callback);
