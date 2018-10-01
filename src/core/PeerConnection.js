@@ -74,7 +74,14 @@ class PeerConnection {
 
   send(data) {
     if (this.connected) {
-      this._peer.send(JSON.stringify(data));
+      if (
+        this._peer._channel !== null &&
+        this._peer._channel.readyState === "open"
+      ) {
+        this._peer.send(JSON.stringify(data));
+      } else {
+        console.warn("channel not open :o ");
+      }
     } else {
       console.warn("attemping to send data before connecting", data);
     }
