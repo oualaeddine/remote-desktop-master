@@ -38,6 +38,7 @@ class DesktopController {
   }
 
   registerEventListeners(sendIOEvent) {
+    this._lastMouseMove = Date.now();
     if (!this._eventsRegistred) {
       this.onMouseMove(sendIOEvent);
       this.onMouseClick(sendIOEvent);
@@ -91,26 +92,46 @@ class DesktopController {
         }
       };
 
-      callback(this.makeMouseEvent(event));
+      if (Date.now() - this._lastMouseMove >= 30) {
+        callback(this.makeMouseEvent(event));
+        this._lastMouseMove = Date.now();
+      }
     });
   }
 
   onMouseToggle() {}
 
   onMouseClick(callback) {
-    this._$overlay.addEventListener("click", e => {
-      // const mouse_relative_x = e.offsetX;
-      // const mouse_relative_y = e.offsetY;
+    this._$overlay.addEventListener("mousedown", e => {
       const mouse_relative_x = e.clientX - this.video.offsetLeft;
       const mouse_relative_y = e.clientY - this.video.offsetTop;
 
       const { x, y } = this.getMousePos(mouse_relative_x, mouse_relative_y);
 
       let event = {
-        event: "MOUSE_CLICK",
+        event: "MOUSE_DOWN",
         payload: {
           x,
-          y
+          y,
+          button: "left"
+        }
+      };
+
+      callback(this.makeMouseEvent(event));
+    });
+
+    this._$overlay.addEventListener("mouseup", e => {
+      const mouse_relative_x = e.clientX - this.video.offsetLeft;
+      const mouse_relative_y = e.clientY - this.video.offsetTop;
+
+      const { x, y } = this.getMousePos(mouse_relative_x, mouse_relative_y);
+      console.log("up");
+      let event = {
+        event: "MOUSE_UP",
+        payload: {
+          x,
+          y,
+          button: "left"
         }
       };
 
@@ -122,7 +143,20 @@ class DesktopController {
     this._$overlay.addEventListener("keydown", e => {
       console.log(e.key);
       let event = {
-        event: "KEY_PRESS",
+        event: "KEY_DOWN",
+        payload: {
+          key: e.key,
+          modifier: "NONE" /// TODO: send modifiers
+        }
+      };
+
+      callback(this.makeKeyboardEvent(event));
+    });
+
+    this._$overlay.addEventListener("keyup", e => {
+      console.log(e.key);
+      let event = {
+        event: "KEY_UP",
         payload: {
           key: e.key,
           modifier: "NONE" /// TODO: send modifiers
