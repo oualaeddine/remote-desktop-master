@@ -6,12 +6,12 @@ import MasterSocketConnection from "./MasterSocketConnection";
 class DesktopController {
   /**
    *
-   * @param {MediaStream} stream Stream received from Slave
-   * @param {Array<Element>} $html contains the video element and its overlay
-   * @param {MasterSocketConnection} socketConnection
-   * @param {Slave} slave
+   * @param {MediaStream} param.stream Stream received from Slave
+   * @param {Array<Element>} param.$html contains the video element and its overlay
+   * @param {MasterSocketConnection} param.socketConnection
+   * @param {Slave} param.slave
    */
-  constructor(stream, $html, socketConnection, slave) {
+  constructor({ stream, $html, socketConnection, slave }) {
     this._stream = stream;
     this._$video = $html.video;
     this._$overlay = $html.overlay;
@@ -146,6 +146,7 @@ class DesktopController {
         event: "KEY_DOWN",
         payload: {
           key: e.key,
+          keyCode: e.keyCode,
           modifier: "NONE" /// TODO: send modifiers
         }
       };
@@ -159,6 +160,7 @@ class DesktopController {
         event: "KEY_UP",
         payload: {
           key: e.key,
+          keyCode: e.keyCode,
           modifier: "NONE" /// TODO: send modifiers
         }
       };
