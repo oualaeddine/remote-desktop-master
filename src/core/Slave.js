@@ -10,6 +10,11 @@ class Slave {
     this._preview = preview;
   }
 
+  update({ connected, reserved, preview }) {
+    this._preview = preview;
+    this.isConnected = connected && !reserved;
+  }
+
   get preview() {
     return this._preview || "";
   }
@@ -20,13 +25,29 @@ class Slave {
     this._resolution = resolution;
   }
 
+  static updateSlavesList(slave_list) {
+    Slave.slaves_list = [];
+    slave_list.forEach(slave => {
+      if (!!slave.id) {
+        if (Slave.exists(slave.id)) {
+          this.getSlaveById(slave.id).update(slave);
+        } else {
+          Slave.createSlave(slave);
+        }
+      }
+    });
+  }
+
   static exists(id) {
     return Slave.slaves_list.map(s => s.ID).indexOf(id) >= 0;
   }
-  static getSlaves = () => {
-    console.log(Slave.slaves_list);
+  static getSlaves() {
     return Slave.slaves_list;
-  };
+  }
+
+  static getSlaveById(id) {
+    return Slave.slaves_list.find(s => s.ID == id);
+  }
   static createSlave(data) {
     if (!Slave.exists(data.id)) {
       const slave = new Slave(data);

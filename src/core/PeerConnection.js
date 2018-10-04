@@ -28,6 +28,7 @@ class PeerConnection {
         }
       }
     });
+    console.log("iceServers", iceServers);
     this._connected = false;
 
     onSignal(onSignal);

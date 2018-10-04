@@ -141,7 +141,9 @@ class DesktopController {
 
   onKeyTap(callback) {
     this._$overlay.addEventListener("keydown", e => {
-      console.log(e.key);
+      e.preventDefault();
+
+      console.log(e);
       let event = {
         event: "KEY_DOWN",
         payload: {
@@ -155,7 +157,7 @@ class DesktopController {
     });
 
     this._$overlay.addEventListener("keyup", e => {
-      console.log(e.key);
+      e.preventDefault();
       let event = {
         event: "KEY_UP",
         payload: {

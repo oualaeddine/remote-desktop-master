@@ -54,7 +54,10 @@ export default {
       return this.currentSlaveID >= 0;
     },
     currentSlave() {
-      this.currentSlaveID >= 0 ? this.slaves[this.currentSlaveID] : null;
+      if (this.currentSlaveID >= 0)
+        return Slave.getSlaveById(this.currentSlaveID);
+
+      return null;
     },
     slaves() {
       return Slave.getSlaves();
@@ -70,14 +73,15 @@ export default {
       this.socketConnection = new MasterSocketConnection(socketURL);
       this.socketConnection.sendAuthentication(data => {
         this.isAuthenticated = true;
-        this.loadSlaves({ slave_list: data && data.slave_list });
+        // this.loadSlaves({ slave_list: data && data.slave_list });
+        Slave.updateSlavesList(data.slave_list);
+      });
+      this.socketConnection.onSlaveList(data => {
+        console.log(data);
+        Slave.updateSlavesList(data.slave_list);
       });
     },
-    loadSlaves({ slave_list }) {
-      slave_list.forEach(slave => {
-        if (slave.id) Slave.createSlave(slave);
-      });
-    },
+    loadSlaves({ slave_list }) {},
     initControlConnection({ slave_id }) {
       this.socketConnection.sendControlRequest(slave_id, controlResponse => {
         this.onControlResponse(controlResponse, slave_id);
@@ -85,6 +89,7 @@ export default {
     },
     onControlResponse(controlResponse, slave_id) {
       this.currentSlaveID = String(slave_id);
+
       this.currentSlave.setSpecs({
         resolution: controlResponse.resolution
       });
