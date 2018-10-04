@@ -10,7 +10,7 @@
       <h2>Machine N°{{ID}}</h2>
     </v-card-title>
     <v-card-actions>
-      <v-btn flat color="orange" :disabled='!isConnected' @click="control">Controller</v-btn>
+      <slot name='actions'></slot>
     </v-card-actions>
   </v-card>
 </template>

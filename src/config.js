@@ -1,4 +1,4 @@
-export const URL = "http://192.168.1.34:3000";
+export const URL = "http://rdesktop.daddou.me:8001";
 export const PORT = "3000";
 export const DEFAULT_ICE_SERVERS = [
   {

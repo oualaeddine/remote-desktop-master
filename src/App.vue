@@ -16,10 +16,12 @@
             >
               <card-slave 
                 :ID='slave.ID'
-                :isConnected='slave.isConnected'
-                :imgSrc='slave.preview'
-                @control='initControlConnection({slave_id: slave.ID})'
-              />
+                :imgSrc='getSlavePreview(slave.ID)'
+              >
+                <template slot='actions'>
+                  <v-btn flat color="orange" :disabled='!isSlaveConnected(slave.ID)' @click="initControlConnection({slave_id: slave.ID})">Controller</v-btn>
+                </template>
+              </card-slave>
             </v-flex>
           </v-layout>
       </v-container>
@@ -51,11 +53,10 @@ export default {
   }),
   computed: {
     isControlling() {
-      return this.currentSlaveID >= 0;
+      return this.currentSlaveID !== -1;
     },
     currentSlave() {
-      if (this.currentSlaveID >= 0)
-        return Slave.getSlaveById(this.currentSlaveID);
+      if (this.isControlling) return Slave.getSlaveById(this.currentSlaveID);
 
       return null;
     },
@@ -69,6 +70,12 @@ export default {
     });
   },
   methods: {
+    isSlaveConnected(id) {
+      return Slave.getSlaveById(id).isConnected;
+    },
+    getSlavePreview(id) {
+      return Slave.getSlaveById(id).preview;
+    },
     connect({ socketURL }) {
       this.socketConnection = new MasterSocketConnection(socketURL);
       this.socketConnection.sendAuthentication(data => {
@@ -77,8 +84,10 @@ export default {
         Slave.updateSlavesList(data.slave_list);
       });
       this.socketConnection.onSlaveList(data => {
-        console.log(data);
+        if (this.isControlling) return;
+        console.log("slave list", data);
         Slave.updateSlavesList(data.slave_list);
+        this.$forceUpdate();
       });
     },
     loadSlaves({ slave_list }) {},
@@ -90,7 +99,7 @@ export default {
     onControlResponse(controlResponse, slave_id) {
       this.currentSlaveID = String(slave_id);
 
-      this.currentSlave.setSpecs({
+      Slave.getSlaveById(this.currentSlaveID).setSpecs({
         resolution: controlResponse.resolution
       });
 
@@ -108,10 +117,11 @@ export default {
         stream,
         $html: { video, overlay },
         socketConnection: this.socketConnection,
-        slave: this.currentSlave
+        slave: Slave.getSlaveById(this.currentSlaveID)
       });
 
       this.desktopController.registerEventListeners(event => {
+        console.log("sending event");
         this.socketConnection.sendIOEvent(event);
       });
     }
@@ -123,7 +133,6 @@ export default {
 html,
 body {
   height: 100vh;
-  overflow: hidden;
 }
 .slave {
   position: relative;
