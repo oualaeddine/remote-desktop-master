@@ -1,10 +1,16 @@
 <template>
-  <v-app id="app">
-    <!-- <tool-bar :title='"Master"'/> -->
+  <v-app id="app" fill-height>
+    <v-toolbar color="primary" app>
+      <v-toolbar-items>
+        <v-btn v-if='isControlling' flat @click='stopDesktopControl'>Stop control</v-btn>
+      </v-toolbar-items>
+    </v-toolbar>
     <v-content fill-height>
       <v-container :class='"slave"' fill-height v-show='isAuthenticated && isControlling'>
-        <video class='slave-video' id='video'></video>
-        <div id="overlay" class="slave-overlay" tabindex="1"></div>
+        <div id="overlay" class="slave-overlay" tabindex="1">
+          <span class='slave-latency' v-if='isControlling'>latency: {{latency}}</span>
+          <video class='slave-video' id='video'></video>
+        </div>
       </v-container>
 
       <v-container v-if='isAuthenticated && !isControlling' fluid fill-height justify-content-center grid-list-xl>
@@ -49,7 +55,9 @@ export default {
     socketConnection: null,
     isAuthenticated: false,
     desktopController: null,
-    currentSlaveID: -1
+    currentSlaveID: -1,
+    slaves: [],
+    latency: 0
   }),
   computed: {
     isControlling() {
@@ -59,9 +67,6 @@ export default {
       if (this.isControlling) return Slave.getSlaveById(this.currentSlaveID);
 
       return null;
-    },
-    slaves() {
-      return Slave.getSlaves();
     }
   },
   mounted() {
@@ -80,17 +85,18 @@ export default {
       this.socketConnection = new MasterSocketConnection(socketURL);
       this.socketConnection.sendAuthentication(data => {
         this.isAuthenticated = true;
-        // this.loadSlaves({ slave_list: data && data.slave_list });
-        Slave.updateSlavesList(data.slave_list);
+        this.loadSlaves(data);
       });
       this.socketConnection.onSlaveList(data => {
         if (this.isControlling) return;
         console.log("slave list", data);
-        Slave.updateSlavesList(data.slave_list);
-        this.$forceUpdate();
+        this.loadSlaves(data);
       });
     },
-    loadSlaves({ slave_list }) {},
+    loadSlaves({ slave_list }) {
+      Slave.updateSlavesList(slave_list);
+      this.$set(this, "slaves", Slave.getSlaves());
+    },
     initControlConnection({ slave_id }) {
       this.socketConnection.sendControlRequest(slave_id, controlResponse => {
         this.onControlResponse(controlResponse, slave_id);
@@ -124,6 +130,17 @@ export default {
         console.log("sending event");
         this.socketConnection.sendIOEvent(event);
       });
+
+      setInterval(() => {
+        if (this.isControlling) this.getLatency();
+      }, 1000);
+    },
+    stopDesktopControl() {
+      this.socketConnection.disconnectWebRTC();
+      this.currentSlaveID = -1;
+    },
+    getLatency() {
+      this.socketConnection.getLatency(latency => (this.latency = latency));
     }
   }
 };
@@ -133,28 +150,41 @@ export default {
 html,
 body {
   height: 100vh;
+  width: 100vw;
 }
 .slave {
   position: relative;
   margin: 0;
   padding: 0;
+  /* width: 100%;
+  height: 100%; */
+}
+.slave-overlay {
+  position: relative;
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
   width: 100%;
   height: 100%;
-}
-.slave-video {
-  padding: 0;
-  margin: 0;
-  width: 100%;
-  border: 5px solid white;
-  width: 100%;
-  position: absolute;
   top: 0;
   left: 0;
 }
-.slave-overlay {
-  width: 100%;
-  height: 100%;
+.slave-latency {
+  position: relative;
+  top: 6px;
+  left: 5px;
+  z-index: 3;
+  color: yellow;
+}
+.slave-video {
   position: absolute;
+  max-width: 100%;
+  max-height: 100%;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+
+  /* height: 100%; */
   top: 0;
   left: 0;
 }

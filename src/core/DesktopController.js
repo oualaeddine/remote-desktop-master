@@ -20,10 +20,6 @@ class DesktopController {
 
     console.log("Initiated Desktop controller", this);
     this.stream = this._stream;
-
-    this._socketConnection.onData(data => {
-      console.log("got data", String(data));
-    });
   }
 
   get video() {
@@ -44,7 +40,7 @@ class DesktopController {
       this.onMouseClick(sendIOEvent);
       this.onKeyTap(sendIOEvent);
       // this.onMouseToggle(sendIOEvent);
-      // this.onMouseScroll(sendIOEvent);
+      this.onMouseScroll(sendIOEvent);
       // this.onKeyPress(sendIOEvent);
       // this.onKeyToggle(sendIOEvent);
     }
@@ -65,7 +61,18 @@ class DesktopController {
     };
   }
 
-  getMousePos(mouse_relative_x, mouse_relative_y) {
+  _getElementOffset(el) {
+    const rect = el.getBoundingClientRect();
+    return {
+      left: rect.left + window.scrollX,
+      top: rect.top + window.scrollY
+    };
+  }
+
+  getMousePos(e) {
+    const mouse_relative_x = e.pageX - this._getElementOffset(this.video).left;
+    const mouse_relative_y = e.pageY - this._getElementOffset(this.video).top;
+
     const videoHeight = this.video.clientHeight;
     const videoWidth = this.video.clientWidth;
 
@@ -79,10 +86,7 @@ class DesktopController {
 
   onMouseMove(callback) {
     this._$overlay.addEventListener("mousemove", e => {
-      const mouse_relative_x = e.pageX - this.video.offsetLeft;
-      const mouse_relative_y = e.pageY - this.video.offsetTop;
-
-      const { x, y } = this.getMousePos(mouse_relative_x, mouse_relative_y);
+      const { x, y } = this.getMousePos(e);
 
       let event = {
         event: "MOUSE_MOVE",
@@ -103,10 +107,7 @@ class DesktopController {
 
   onMouseClick(callback) {
     this._$overlay.addEventListener("mousedown", e => {
-      const mouse_relative_x = e.clientX - this.video.offsetLeft;
-      const mouse_relative_y = e.clientY - this.video.offsetTop;
-
-      const { x, y } = this.getMousePos(mouse_relative_x, mouse_relative_y);
+      const { x, y } = this.getMousePos(e);
 
       let event = {
         event: "MOUSE_DOWN",
@@ -121,10 +122,7 @@ class DesktopController {
     });
 
     this._$overlay.addEventListener("mouseup", e => {
-      const mouse_relative_x = e.clientX - this.video.offsetLeft;
-      const mouse_relative_y = e.clientY - this.video.offsetTop;
-
-      const { x, y } = this.getMousePos(mouse_relative_x, mouse_relative_y);
+      const { x, y } = this.getMousePos(e);
       console.log("up");
       let event = {
         event: "MOUSE_UP",
@@ -171,7 +169,21 @@ class DesktopController {
     });
   }
 
-  onMouseScroll() {}
+  onMouseScroll(callback) {
+    this._$overlay.addEventListener("mousewheel", e => {
+      console.log(e);
+
+      let event = {
+        event: "MOUSE_SCROLL",
+        payload: {
+          x: e.deltaX,
+          y: -e.deltaY
+        }
+      };
+
+      callback(this.makeMouseEvent(event));
+    });
+  }
 
   onKeyPress() {}
 

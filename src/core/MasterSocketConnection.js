@@ -38,9 +38,15 @@ class MasterSocketConnection {
       this._socket.destroy();
       delete this._socket;
       this._socket = null;
+      this.sendAuthentication(_ => _);
     }
     console.log("reconnecting");
     this.connect();
+  }
+
+  disconnectWebRTC() {
+    this.peerConnection.destroy();
+    this.peerConnection = null;
   }
 
   get connected() {
@@ -69,6 +75,17 @@ class MasterSocketConnection {
   }
   sendData(data) {
     this.peerConnection.send(data);
+  }
+
+  getLatency(cb) {
+    this.peerConnection.send({
+      type: "PING",
+      payload: Date.now()
+    });
+
+    this.peerConnection.onPong(startTime => {
+      cb(Date.now() - startTime);
+    });
   }
   sendIOEvent(event) {
     this.peerConnection.send({
