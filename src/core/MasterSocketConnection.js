@@ -2,8 +2,8 @@ import PeerConnection from "./PeerConnection";
 import SocketIO from "socket.io-client";
 
 class MasterSocketConnection {
-  constructor({ host }) {
-    this._host = host;
+  constructor(socketURL) {
+    this._host = socketURL;
     this.connect();
     this.peerConnection = null;
   }
@@ -38,9 +38,15 @@ class MasterSocketConnection {
       this._socket.destroy();
       delete this._socket;
       this._socket = null;
+      this.sendAuthentication(_ => _);
     }
     console.log("reconnecting");
     this.connect();
+  }
+
+  disconnectWebRTC() {
+    this.peerConnection.destroy();
+    this.peerConnection = null;
   }
 
   get connected() {
@@ -62,10 +68,24 @@ class MasterSocketConnection {
       token: "MA3EAD8FE2F95644D2EDC3B1F974499",
       type: "master"
     });
-    this.socket.on("authentication_done", onAuthDone);
+    this.socket.on("authentication_done", data => {
+      this._iceServers = data.iceServers;
+      onAuthDone(data);
+    });
   }
   sendData(data) {
     this.peerConnection.send(data);
+  }
+
+  getLatency(cb) {
+    this.peerConnection.send({
+      type: "PING",
+      payload: Date.now()
+    });
+
+    this.peerConnection.onPong(startTime => {
+      cb(Date.now() - startTime);
+    });
   }
   sendIOEvent(event) {
     this.peerConnection.send({
@@ -78,7 +98,7 @@ class MasterSocketConnection {
 
     if (this.peerConnection) this.peerConnection.destroy();
     this.peerConnection = new PeerConnection(
-      { iceServers: PeerConnection.DEFAULT_ICE_SERVERS },
+      { iceServers: this._iceServers || PeerConnection.DEFAULT_ICE_SERVERS },
       signal => {
         this.socket.emit("control_request", {
           slave_id: slave_id,
@@ -106,6 +126,9 @@ class MasterSocketConnection {
   }
   onStream(callback) {
     if (this.peerConnection) this.peerConnection.onStream(callback);
+  }
+  onSlaveList(callback) {
+    this._socket.on("slave_list", callback);
   }
 }
 

@@ -11,7 +11,6 @@
     </v-card-title>
     <v-card-actions>
       <v-btn flat color="orange" :disabled='!isConnected' @click="control">Controller</v-btn>
-      <v-btn flat color="orange">Renommer</v-btn>
     </v-card-actions>
   </v-card>
 </template>
@@ -19,9 +18,12 @@
 <script>
 export default {
   props: {
-    ID: { type: Number, default: 0 },
+    ID: { type: String, default: 0 },
     isConnected: { type: Boolean, default: false },
-    imgSrc: { type: String, default: "" }
+    imgSrc: {
+      type: String,
+      default: "https://cdn.vuetifyjs.com/images/cards/docks.jpg"
+    }
   },
   methods: {
     control() {

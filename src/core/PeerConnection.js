@@ -35,10 +35,15 @@ class PeerConnection {
 
     this._peer.on("data", data => {
       if (typeof this._onDataCallback === "function") {
-        this._onDataCallback(data);
+        this._onDataCallback(JSON.parse(String(data)));
       } else {
         console.warn("No Data listener registred for this peer connection");
       }
+    });
+
+    this._peer.on("connect", () => {
+      console.log("PEER CONNECTION ESTABLISHED");
+      this._connected = true;
     });
 
     this._peer.on("stream", stream => {
@@ -50,9 +55,24 @@ class PeerConnection {
       }
     });
 
-    this._peer.on("connect", () => {
-      console.log("PEER CONNECTION ESTABLISHED");
-      this._connected = true;
+    this.onData(({ type, payload }) => {
+      switch (type) {
+        case "PING":
+          this.send({
+            type: "PONG",
+            payload: payload
+          });
+          break;
+        case "PONG":
+          if (typeof this._onPongCallback === "function") {
+            this._onPongCallback(payload);
+          } else {
+            console.warn("No Pong listener registred for this peer connection");
+          }
+          break;
+        default:
+          console.warn("unknown data type received by peer");
+      }
     });
   }
 
@@ -97,6 +117,9 @@ class PeerConnection {
 
   onStream(onStream) {
     this._onStreamCallback = onStream;
+  }
+  onPong(onPong) {
+    this._onPongCallback = onPong;
   }
 
   destroy() {
