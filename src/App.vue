@@ -15,42 +15,54 @@
         <v-btn icon dark @click='refresh'>
           <v-icon>refresh</v-icon>
         </v-btn>
+        <settings-dialog v-if='!isControlling'/>
       </v-toolbar-items>
     </v-toolbar>
-    <v-content fill-height>
-      <v-container :class='"slave"' fill-height v-show='isAuthenticated && isControlling'>
-        <div id="overlay" class="slave-overlay" tabindex="1">
-          <span class='slave-latency' v-if='isControlling'>latency: {{latency}}</span>
-          <video class='slave-video' id='video'></video>
-        </div>
-      </v-container>
+    <!-- Spinner à afficher si il est pas authentiqué -->
+    <v-container fluid fill-height justify-center v-if="!isAuthenticated">
+      <v-layout row wrap align-center>
+        <v-flex class="text-xs-center">
+          <v-progress-circular indeterminate color="primary" ></v-progress-circular>
+        </v-flex>
+      </v-layout>
+    </v-container>
 
-      <v-container v-if='isAuthenticated && !isControlling' fluid fill-height justify-content-center grid-list-xl>
-        <v-layout row wrap>
-            <v-flex
-              v-for="(slave,n) in slaves"
-              :key="n"
-              xs4
-            >
-              <card-slave 
-                :ID='slave.ID'
-                :imgSrc='slave.preview'
-                :isConnected='slave.isConnected'
-                @control='initControlConnection({slave_id: slave.ID})'
-              />
-            </v-flex>
-          </v-layout>
-      </v-container>
-      
-    </v-content>
+    <!-- Contenu de la page, envelopper d'un 'cloak' pour cacher pendant la connexion -->
+    <template v-cloak v-else>
+      <v-content fill-height>
+        <!-- Partie video/controle afficher lorsque le controle est initié -->
+        <v-container :class='"slave"' fill-height v-show='isControlling'>
+          <div id="overlay" class="slave-overlay" tabindex="1">
+            <span class='slave-latency' v-if='isControlling'>latency: {{latency}}</span>
+            <video class='slave-video' id='video'></video>
+          </div>
+        </v-container>
 
+        <!-- Partie choix des machines slaves -->
+        <v-container v-if='!isControlling' fluid fill-height justify-content-center grid-list-xl>
+          <v-layout row wrap>
+              <v-flex
+                v-for="(slave,n) in slaves"
+                :key="n"
+                xs4
+              >
+                <card-slave 
+                  :ID='slave.ID'
+                  :imgSrc='slave.preview'
+                  :isConnected='slave.isConnected'
+                  @control='initControlConnection({slave_id: slave.ID})'
+                />
+              </v-flex>
+            </v-layout>
+        </v-container>
+      </v-content>
+    </template>
   </v-app>
 </template>
 
 <script>
 import CardSlave from "@/components/CardSlave";
-
-import { URL, PORT } from "@/config.js";
+import SettingsDialog from "@/components/SettingsDialog";
 
 import MasterSocketConnection from "@/core/MasterSocketConnection";
 import DesktopController from "@/core/DesktopController";
@@ -59,7 +71,8 @@ import Slave from "@/core/Slave";
 export default {
   name: "app",
   components: {
-    CardSlave
+    CardSlave,
+    SettingsDialog
   },
   data: () => ({
     socketConnection: null,
@@ -81,7 +94,7 @@ export default {
   },
   mounted() {
     this.connect({
-      socketURL: process.env.HOST || `${URL}`
+      socketURL: `${window.SERVER_URL}`
     });
   },
   methods: {
