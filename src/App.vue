@@ -2,7 +2,19 @@
   <v-app id="app" fill-height>
     <v-toolbar color="primary" app>
       <v-toolbar-items>
-        <v-btn v-if='isControlling' flat @click='stopDesktopControl'>Stop control</v-btn>
+        <v-btn v-if='isControlling' flat dark @click='stopDesktopControl'>
+          <v-icon>arrow_back</v-icon>
+          Stop control
+        </v-btn>
+      </v-toolbar-items>
+      <v-spacer></v-spacer>
+      <v-toolbar-items>
+        <v-btn icon dark @click='toggleFullScreen'>
+          <v-icon>fullscreen</v-icon>
+        </v-btn>
+        <v-btn icon dark @click='refresh'>
+          <v-icon>refresh</v-icon>
+        </v-btn>
       </v-toolbar-items>
     </v-toolbar>
     <v-content fill-height>
@@ -22,12 +34,10 @@
             >
               <card-slave 
                 :ID='slave.ID'
-                :imgSrc='getSlavePreview(slave.ID)'
-              >
-                <template slot='actions'>
-                  <v-btn flat color="orange" :disabled='!isSlaveConnected(slave.ID)' @click="initControlConnection({slave_id: slave.ID})">Controller</v-btn>
-                </template>
-              </card-slave>
+                :imgSrc='slave.preview'
+                :isConnected='slave.isConnected'
+                @control='initControlConnection({slave_id: slave.ID})'
+              />
             </v-flex>
           </v-layout>
       </v-container>
@@ -75,11 +85,37 @@ export default {
     });
   },
   methods: {
-    isSlaveConnected(id) {
-      return Slave.getSlaveById(id).isConnected;
+    refresh() {
+      if (this.isControlling) {
+        this.socketConnection.disconnectWebRTC();
+        this.initControlConnection({ slave_id: this.currentSlaveID });
+      } else {
+        window.location.reload();
+      }
     },
-    getSlavePreview(id) {
-      return Slave.getSlaveById(id).preview;
+    toggleFullScreen() {
+      if (
+        (document.fullScreenElement && document.fullScreenElement !== null) ||
+        (!document.mozFullScreen && !document.webkitIsFullScreen)
+      ) {
+        if (document.documentElement.requestFullScreen) {
+          document.documentElement.requestFullScreen();
+        } else if (document.documentElement.mozRequestFullScreen) {
+          document.documentElement.mozRequestFullScreen();
+        } else if (document.documentElement.webkitRequestFullScreen) {
+          document.documentElement.webkitRequestFullScreen(
+            Element.ALLOW_KEYBOARD_INPUT
+          );
+        }
+      } else {
+        if (document.cancelFullScreen) {
+          document.cancelFullScreen();
+        } else if (document.mozCancelFullScreen) {
+          document.mozCancelFullScreen();
+        } else if (document.webkitCancelFullScreen) {
+          document.webkitCancelFullScreen();
+        }
+      }
     },
     connect({ socketURL }) {
       this.socketConnection = new MasterSocketConnection(socketURL);
@@ -89,7 +125,6 @@ export default {
       });
       this.socketConnection.onSlaveList(data => {
         if (this.isControlling) return;
-        console.log("slave list", data);
         this.loadSlaves(data);
       });
     },
@@ -127,7 +162,6 @@ export default {
       });
 
       this.desktopController.registerEventListeners(event => {
-        console.log("sending event");
         this.socketConnection.sendIOEvent(event);
       });
 
@@ -162,19 +196,27 @@ body {
 .slave-overlay {
   position: relative;
   display: block;
+  outline: none;
   max-width: 100%;
   max-height: 100%;
   width: 100%;
   height: 100%;
   top: 0;
   left: 0;
+  z-index: 2;
 }
 .slave-latency {
   position: relative;
   top: 6px;
   left: 5px;
-  z-index: 3;
+  z-index: 1;
   color: yellow;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 .slave-video {
   position: absolute;

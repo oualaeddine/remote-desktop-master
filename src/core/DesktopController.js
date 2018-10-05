@@ -43,6 +43,9 @@ class DesktopController {
       this.onMouseScroll(sendIOEvent);
       // this.onKeyPress(sendIOEvent);
       // this.onKeyToggle(sendIOEvent);
+      this._$overlay.addEventListener("contextmenu", event =>
+        event.preventDefault()
+      );
     }
     this._eventsRegistred = true;
   }
@@ -108,13 +111,12 @@ class DesktopController {
   onMouseClick(callback) {
     this._$overlay.addEventListener("mousedown", e => {
       const { x, y } = this.getMousePos(e);
-
       let event = {
         event: "MOUSE_DOWN",
         payload: {
           x,
           y,
-          button: "left"
+          button: ["left", "middle", "right"][e.button]
         }
       };
 
@@ -123,13 +125,12 @@ class DesktopController {
 
     this._$overlay.addEventListener("mouseup", e => {
       const { x, y } = this.getMousePos(e);
-      console.log("up");
       let event = {
         event: "MOUSE_UP",
         payload: {
           x,
           y,
-          button: "left"
+          button: ["left", "middle", "right"][e.button]
         }
       };
 
@@ -141,7 +142,6 @@ class DesktopController {
     this._$overlay.addEventListener("keydown", e => {
       e.preventDefault();
 
-      console.log(e);
       let event = {
         event: "KEY_DOWN",
         payload: {
@@ -171,8 +171,6 @@ class DesktopController {
 
   onMouseScroll(callback) {
     this._$overlay.addEventListener("mousewheel", e => {
-      console.log(e);
-
       let event = {
         event: "MOUSE_SCROLL",
         payload: {

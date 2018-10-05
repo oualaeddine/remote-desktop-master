@@ -28,14 +28,12 @@ class PeerConnection {
         }
       }
     });
-    console.log("iceServers", iceServers);
     this._connected = false;
 
     onSignal(onSignal);
     this._peer.on("signal", onSignal);
 
     this._peer.on("data", data => {
-      console.log("data", String(data));
       if (typeof this._onDataCallback === "function") {
         this._onDataCallback(JSON.parse(String(data)));
       } else {
