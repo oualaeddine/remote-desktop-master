@@ -33,8 +33,9 @@
         <!-- Partie video/controle afficher lorsque le controle est initié -->
         <v-container :class='"slave"' fill-height v-show='isControlling'>
           <div id="overlay" class="slave-overlay" tabindex="1">
-            <span class='slave-latency' v-if='isControlling'>latency: {{latency}}</span>
-            <video class='slave-video' id='video'></video>
+              <span class='slave-latency' v-if='isControlling'>latency: {{latency}}</span>
+            <video class='slave-video' :class='{fullscreen: isFullscreen}' id='video'>
+            </video>
           </div>
         </v-container>
 
@@ -80,7 +81,8 @@ export default {
     desktopController: null,
     currentSlaveID: -1,
     slaves: [],
-    latency: 0
+    latency: 0,
+    isFullscreen: false
   }),
   computed: {
     isControlling() {
@@ -111,6 +113,7 @@ export default {
         (document.fullScreenElement && document.fullScreenElement !== null) ||
         (!document.mozFullScreen && !document.webkitIsFullScreen)
       ) {
+        this.isFullscreen = true;
         if (document.documentElement.requestFullScreen) {
           document.documentElement.requestFullScreen();
         } else if (document.documentElement.mozRequestFullScreen) {
@@ -121,6 +124,7 @@ export default {
           );
         }
       } else {
+        this.isFullscreen = false;
         if (document.cancelFullScreen) {
           document.cancelFullScreen();
         } else if (document.mozCancelFullScreen) {
@@ -131,7 +135,11 @@ export default {
       }
     },
     connect({ socketURL }) {
-      this.socketConnection = new MasterSocketConnection(socketURL);
+      this.socketConnection = new MasterSocketConnection(
+        window.MASTER_ID,
+        socketURL,
+        window.AUTH_TOKEN
+      );
       this.socketConnection.sendAuthentication(data => {
         this.isAuthenticated = true;
         this.loadSlaves(data);
@@ -201,17 +209,15 @@ body {
 }
 .slave {
   position: relative;
-  margin: 0;
+  margin: auto;
   padding: 0;
-  /* width: 100%;
-  height: 100%; */
+  min-width: 100%;
+  min-height: 100%;
 }
 .slave-overlay {
   position: relative;
   display: block;
   outline: none;
-  max-width: 100%;
-  max-height: 100%;
   width: 100%;
   height: 100%;
   top: 0;
@@ -233,14 +239,16 @@ body {
 }
 .slave-video {
   position: absolute;
+  display: block;
   max-width: 100%;
   max-height: 100%;
-  height: 100%;
   padding: 0;
-  margin: 0;
-
-  /* height: 100%; */
+  margin: auto;
   top: 0;
   left: 0;
+  right: 0;
+}
+.fullscreen {
+  min-height: 100%;
 }
 </style>

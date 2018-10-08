@@ -2,8 +2,10 @@ import PeerConnection from "./PeerConnection";
 import SocketIO from "socket.io-client";
 
 class MasterSocketConnection {
-  constructor(socketURL) {
+  constructor(id, socketURL, token) {
     this._host = socketURL;
+    this._id = id;
+    this._token = token;
     this.connect();
     this.peerConnection = null;
   }
@@ -64,8 +66,8 @@ class MasterSocketConnection {
   }
   sendAuthentication(onAuthDone) {
     this.socket.emit("authentication", {
-      id: "1",
-      token: "MA3EAD8FE2F95644D2EDC3B1F974499",
+      id: this._id,
+      token: this._token,
       type: "master"
     });
     this.socket.on("authentication_done", data => {

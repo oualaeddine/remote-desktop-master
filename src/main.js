@@ -4,9 +4,11 @@ import App from "./App.vue";
 import Vuetify from "vuetify";
 import "vuetify/dist/vuetify.min.css"; // Ensure you are using css-loader
 
-import { URL } from "@/config.js";
+import { ID, URL, TOKEN } from "@/config.js";
 
+window.MASTER_ID = localStorage.getItem("MASTER_ID") || ID;
 window.SERVER_URL = localStorage.getItem("SERVER_URL") || URL;
+window.AUTH_TOKEN = localStorage.getItem("AUTH_TOKEN") || TOKEN;
 
 Vue.use(Vuetify);
 

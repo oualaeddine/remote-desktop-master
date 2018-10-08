@@ -10,6 +10,8 @@
         </v-card-title>
         <v-card-text>
           <v-form @submit.prevent="saveSettings">
+            <v-text-field v-model="id" prepend-icon="person" name="ID" label="ID" type="text"></v-text-field>
+            <v-text-field v-model="token" prepend-icon="lock" name="token" label="token" type="text"></v-text-field>
             <v-text-field v-model="url" prepend-icon="link" name="url" label="url" type="text"></v-text-field>
           </v-form>
         </v-card-text>
@@ -29,7 +31,9 @@
 export default {
   data: () => ({
     dialog: false,
-    url: window.SERVER_URL
+    id: window.MASTER_ID,
+    url: window.SERVER_URL,
+    token: window.AUTH_TOKEN
   }),
   mounted() {
     this.url = window.SERVER_URL;
@@ -37,7 +41,9 @@ export default {
   methods: {
     saveSettings() {
       /// TODO: check if valid url
+      localStorage.setItem("MASTER_ID", this.id);
       localStorage.setItem("SERVER_URL", this.url);
+      localStorage.setItem("AUTH_TOKEN", this.token);
       this.dialog = false;
       window.location.reload();
     }
