@@ -229,7 +229,8 @@ body {
   top: 6px;
   left: 5px;
   z-index: 1;
-  color: yellow;
+  color: red;
+  font-weight: bold;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   -khtml-user-select: none;
