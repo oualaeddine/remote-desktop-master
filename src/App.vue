@@ -1,5 +1,7 @@
 <template>
   <v-app id="app" fill-height>
+
+    <!-- Toolbar  -->
     <v-toolbar color="primary" app>
       <v-toolbar-items>
         <v-btn v-if='isControlling' flat dark @click='stopDesktopControl'>
@@ -15,10 +17,12 @@
         <v-btn icon dark @click='refresh'>
           <v-icon>refresh</v-icon>
         </v-btn>
+        <!-- Dialog parametres -->
         <settings-dialog v-if='!isControlling'/>
       </v-toolbar-items>
     </v-toolbar>
-    <!-- Spinner à afficher si il est pas authentiqué -->
+
+    <!-- Spinner à afficher avant et pendant la connexion -->
     <v-container fluid fill-height justify-center v-if="!isAuthenticated">
       <v-layout row wrap align-center>
         <v-flex class="text-xs-center">
@@ -27,25 +31,20 @@
       </v-layout>
     </v-container>
 
-    <!-- Contenu de la page, envelopper d'un 'cloak' pour cacher pendant la connexion -->
+    <!-- Contenu de la page, envelopper d'un 'cloak' pour cacher le contenu pendant la connexion -->
     <template v-cloak v-else>
+
+      <!-- Contenu de la page -->
       <v-content fill-height>
-        <!-- Partie video/controle afficher lorsque le controle est initié -->
-        <v-container :class='"slave"' fill-height v-show='isControlling'>
-          <div id="overlay" class="slave-overlay" tabindex="1">
-            <span class='slave-latency' v-if='isControlling'>latency: {{latency}}</span>
-            <video class='slave-video' id='video'></video>
-          </div>
-        </v-container>
 
         <!-- Partie choix des machines slaves -->
         <v-container v-if='!isControlling' fluid fill-height justify-content-center grid-list-xl>
           <v-layout row wrap>
+            <!-- Parcourir la liste des machines slaves, afficher chacune dans un composant CardSlave -->
               <v-flex
                 v-for="(slave,n) in slaves"
                 :key="n"
-                xs4
-              >
+                xs4>
                 <card-slave 
                   :ID='slave.ID'
                   :imgSrc='slave.preview'
@@ -55,6 +54,20 @@
               </v-flex>
             </v-layout>
         </v-container>
+
+        <!-- Partie video/controle afficher lorsque le controle est initié -->
+        <v-container :class='"slave"' fill-height v-show='isControlling'>
+
+          <!-- div en overlay sur la video pour pouvoir assaigner les listeners du clavier -->
+          <div id="overlay" class="slave-overlay" tabindex="1">
+
+            <span class='slave-latency'>latency: {{latency}}</span>
+
+            <!-- Video qui reçoit le stream pour afficher l'écran du slave -->
+            <video class='slave-video' id='video'></video>
+          </div>
+        </v-container>
+
       </v-content>
     </template>
   </v-app>
@@ -75,29 +88,65 @@ export default {
     SettingsDialog
   },
   data: () => ({
+    /**
+     * @type {MasterSocketConnection}
+     * Instance de la classe MasterSocketConnection
+     */
     socketConnection: null,
+    /**
+     * @type {Boolean}
+     * true lorsque le socket est connecté et authentifié
+     */
     isAuthenticated: false,
+    /**
+     * @type {Boolean}
+     * Instance de la classe Desktop Controller
+     */
     desktopController: null,
+    /**
+     * ID du slave controllé, -1 si aucun
+     * @type Number
+     */
     currentSlaveID: -1,
+    /** 
+     * @type {Slave[]}
+     * Liste des slaves chargés depuis le serveur
+     */
     slaves: [],
+    /**
+     * @type {Number}
+     * Garde la latence (en ms) d'un seul message entre le master slave
+     * mis à jour toutes les 1000ms
+     */
     latency: 0
   }),
   computed: {
+    /**
+     * @return {Boolean} le master est considéré en mode controle si l'ID du slave est !== -1
+     */
     isControlling() {
       return this.currentSlaveID !== -1;
     },
+    /**
+     * @return {Slave} (à partir de la classe Slave)
+     */
     currentSlave() {
       if (this.isControlling) return Slave.getSlaveById(this.currentSlaveID);
 
       return null;
     }
   },
+  /** Methode executée au chargement de la page */
   mounted() {
     this.connect({
       socketURL: `${window.SERVER_URL}`
     });
   },
   methods: {
+    /**
+     * Relance la connexion au slave si en mode controlle
+     * Recharge la page sinon
+     */
     refresh() {
       if (this.isControlling) {
         this.socketConnection.disconnectWebRTC();
@@ -106,6 +155,9 @@ export default {
         window.location.reload();
       }
     },
+    /**
+     *  
+     */
     toggleFullScreen() {
       if (
         (document.fullScreenElement && document.fullScreenElement !== null) ||
@@ -130,6 +182,11 @@ export default {
         }
       }
     },
+    /**
+     * Crée une nouvelle instance de MasterSocketConnection et l'authentifie
+     * Ajoute un listener pour charger la liste des slaves 
+     * @param {String} config.socketURL: l'url du serveur socket
+     */
     connect({ socketURL }) {
       this.socketConnection = new MasterSocketConnection(socketURL);
       this.socketConnection.sendAuthentication(data => {
@@ -141,15 +198,27 @@ export default {
         this.loadSlaves(data);
       });
     },
+    /**
+     * Charge la liste des slaves dans Slave.slave_list
+     */
     loadSlaves({ slave_list }) {
       Slave.updateSlavesList(slave_list);
       this.$set(this, "slaves", Slave.getSlaves());
     },
+    /**
+     * Initie la connexion avec une machine slave en envoyant une control_request
+     * 
+     */
     initControlConnection({ slave_id }) {
       this.socketConnection.sendControlRequest(slave_id, controlResponse => {
         this.onControlResponse(controlResponse, slave_id);
       });
     },
+    /**
+     * Action executée lorsque une control_reponse est reçue du Slave :
+     * - Enregistre l'ID du slave et charge les specifications de la machine (résolution)
+     * - Ajoute un listener pour capturer le stream de la machine Slave 
+     */
     onControlResponse(controlResponse, slave_id) {
       this.currentSlaveID = String(slave_id);
 
@@ -159,6 +228,9 @@ export default {
 
       this.socketConnection.onStream(this.startDesktopControl);
     },
+    /**
+     * Instancie le DesktopController et assigne les differents listeners des souris/clavier
+     */
     startDesktopControl(stream) {
       const video = document.getElementById("video");
       const overlay = document.getElementById("overlay");
@@ -167,8 +239,9 @@ export default {
         this.desktopController.stream = stream;
         return;
       }
+
       this.desktopController = new DesktopController({
-        stream,
+        stream: stream,
         $html: { video, overlay },
         socketConnection: this.socketConnection,
         slave: Slave.getSlaveById(this.currentSlaveID)
@@ -182,10 +255,16 @@ export default {
         if (this.isControlling) this.getLatency();
       }, 1000);
     },
+    /**
+     * Ferme la connexion WebRTC et remet l'état à non control ( currentSlaveID == -1 )
+     */
     stopDesktopControl() {
       this.socketConnection.disconnectWebRTC();
       this.currentSlaveID = -1;
     },
+    /**
+     * 
+     */
     getLatency() {
       this.socketConnection.getLatency(latency => (this.latency = latency));
     }
