@@ -88,7 +88,7 @@ class DesktopController {
   }
 
   onMouseMove(callback) {
-    this._$overlay.addEventListener("mousemove", e => {
+    this._$video.addEventListener("mousemove", e => {
       const { x, y } = this.getMousePos(e);
 
       let event = {
@@ -106,10 +106,8 @@ class DesktopController {
     });
   }
 
-  onMouseToggle() {}
-
   onMouseClick(callback) {
-    this._$overlay.addEventListener("mousedown", e => {
+    this._$video.addEventListener("mousedown", e => {
       const { x, y } = this.getMousePos(e);
       let event = {
         event: "MOUSE_DOWN",
@@ -123,7 +121,7 @@ class DesktopController {
       callback(this.makeMouseEvent(event));
     });
 
-    this._$overlay.addEventListener("mouseup", e => {
+    this._$video.addEventListener("mouseup", e => {
       const { x, y } = this.getMousePos(e);
       let event = {
         event: "MOUSE_UP",
@@ -170,7 +168,7 @@ class DesktopController {
   }
 
   onMouseScroll(callback) {
-    this._$overlay.addEventListener("mousewheel", e => {
+    this._$video.addEventListener("mousewheel", e => {
       let event = {
         event: "MOUSE_SCROLL",
         payload: {

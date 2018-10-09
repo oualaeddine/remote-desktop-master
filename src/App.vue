@@ -57,14 +57,15 @@
 
         <!-- Partie video/controle afficher lorsque le controle est initié -->
         <v-container :class='"slave"' fill-height v-show='isControlling'>
-
+          
           <!-- div en overlay sur la video pour pouvoir assaigner les listeners du clavier -->
           <div id="overlay" class="slave-overlay" tabindex="1">
-
-            <span class='slave-latency'>latency: {{latency}}</span>
-
+          
+            <span class='slave-latency' v-if='isControlling'>latency: {{latency}}</span>
+          
             <!-- Video qui reçoit le stream pour afficher l'écran du slave -->
-            <video class='slave-video' id='video'></video>
+            <video class='slave-video' :class='{fullscreen: isFullscreen}' id='video'></video>
+          
           </div>
         </v-container>
 
@@ -118,7 +119,11 @@ export default {
      * Garde la latence (en ms) d'un seul message entre le master slave
      * mis à jour toutes les 1000ms
      */
-    latency: 0
+    latency: 0,
+    /**
+     * @type {Boolean}
+     */
+    isFullscreen: false
   }),
   computed: {
     /**
@@ -163,6 +168,7 @@ export default {
         (document.fullScreenElement && document.fullScreenElement !== null) ||
         (!document.mozFullScreen && !document.webkitIsFullScreen)
       ) {
+        this.isFullscreen = true;
         if (document.documentElement.requestFullScreen) {
           document.documentElement.requestFullScreen();
         } else if (document.documentElement.mozRequestFullScreen) {
@@ -173,6 +179,7 @@ export default {
           );
         }
       } else {
+        this.isFullscreen = false;
         if (document.cancelFullScreen) {
           document.cancelFullScreen();
         } else if (document.mozCancelFullScreen) {
@@ -188,7 +195,11 @@ export default {
      * @param {String} config.socketURL: l'url du serveur socket
      */
     connect({ socketURL }) {
-      this.socketConnection = new MasterSocketConnection(socketURL);
+      this.socketConnection = new MasterSocketConnection(
+        window.MASTER_ID,
+        socketURL,
+        window.AUTH_TOKEN
+      );
       this.socketConnection.sendAuthentication(data => {
         this.isAuthenticated = true;
         this.loadSlaves(data);
@@ -280,17 +291,15 @@ body {
 }
 .slave {
   position: relative;
-  margin: 0;
+  margin: auto;
   padding: 0;
-  /* width: 100%;
-  height: 100%; */
+  min-width: 100%;
+  min-height: 100%;
 }
 .slave-overlay {
   position: relative;
   display: block;
   outline: none;
-  max-width: 100%;
-  max-height: 100%;
   width: 100%;
   height: 100%;
   top: 0;
@@ -302,7 +311,8 @@ body {
   top: 6px;
   left: 5px;
   z-index: 1;
-  color: yellow;
+  color: red;
+  font-weight: bold;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   -khtml-user-select: none;
@@ -312,14 +322,16 @@ body {
 }
 .slave-video {
   position: absolute;
+  display: block;
   max-width: 100%;
   max-height: 100%;
-  height: 100%;
   padding: 0;
-  margin: 0;
-
-  /* height: 100%; */
+  margin: auto;
   top: 0;
   left: 0;
+  right: 0;
+}
+.fullscreen {
+  min-height: 100%;
 }
 </style>
