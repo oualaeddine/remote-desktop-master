@@ -254,7 +254,6 @@ export default {
       this.desktopController = new DesktopController({
         stream: stream,
         $html: { video, overlay },
-        socketConnection: this.socketConnection,
         slave: Slave.getSlaveById(this.currentSlaveID)
       });
 
